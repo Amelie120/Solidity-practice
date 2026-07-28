@@ -1,43 +1,49 @@
 //SPDX-License-Identifier: MIT
-pragma solidity  0.8.18;
+pragma solidity 0.8.18;
 
 contract SimpleStorage {
-    //creating the favouriteNumber state variable
-    uint256 public favouriteNumber;
+    //favouriteNumber gets initialized to 0 if no value is given
+    uint256  public myfavouriteNumber; //0
 
-    //creating a map to connect the names of the people to their favouriteNumber
+    //array
+    //uint256[] listofFavouriteNumbers;
+
+    //because we want to specifically know what number belongs to what person we can create a person class
+    struct Person{
+        //person class has their favourite number and a name
+        uint256 favouriteNumber;
+        string name;
+    }
+
+    //dynamic array - because the size of the array can grow and shrink
+    //Person[3] - static array as we set a limit of only 3 things inside our list
+    Person[] public listOfPeople; //[] empty list rn
+    //adding a variable in our persons class
+    //Person public Lily = Person(7, "Lily");
+
+    //making a dictionary - so a mapping essentially
+    //every name links to a number so chelsea - > 3 
     mapping(string => uint256) public nameToFavouriteNumber;
 
-    //creating a function to store our favourite number 
-    //this receives a number and permanentely saves it int he contract's state variable
-    //store also updates the number at any time
-    function store(uint256 _favouriteNumber) public  {
-        favouriteNumber = _favouriteNumber;
+    //function to store a uint in our smart contract
+    function store(uint256 _favouriteNumber) public virtual {
+        myfavouriteNumber = _favouriteNumber;
     }
 
-    //creating a function to increase the stored number by six
-    function addSix() public {
-        favouriteNumber = favouriteNumber + 6;
+    //function to return favouriteNumber with returns() 
+    function retrieve() public view returns(uint256) {
+        return myfavouriteNumber;
     }
 
-    //creating a function to retrieve our  favourite number
-    function retrieve() public view returns (uint256) {
-        return favouriteNumber;
-    }
-
-    //defining a person struct with a name and favourite number
-    //struct is only a blueprint basically 
-    struct Person {
-        string name;
-        uint256 favouriteNumber;
-    }
-
-    //storing people in an array
-    Person[] public personList;
-
-    //creating a function to add people to our personList array
-    function addToPeopleList(string memory _name, uint256 _favouriteNumber) public {
-        personList.push(Person({name: _name, favouriteNumber: _favouriteNumber}));
+    //creating a function to add people to our listOfpeople faster
+    //solidity has a function already to push variables into arrays
+    function addPerson(string memory _name, uint256 _favouriteNumber) public {
+        listOfPeople.push((Person(_favouriteNumber, _name)));
         nameToFavouriteNumber[_name] = _favouriteNumber;
     }
+}
+
+
+contract SimpleStorage2 {
+
 }
