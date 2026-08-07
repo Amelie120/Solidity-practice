@@ -14,51 +14,49 @@ import {Ownable} from "@openzeppelin/contracts@5.2.0/access/Ownable.sol";
 import {MyERC20} from "./MyERC20.sol";
 
 contract TokenShop is Ownable {
-
-    // This variable will point to the Chainlink ETH/USD price feed
+    // This variable will point to the Chainlink ETH/USD price feed.
     // "immutable" means it is set once in the constructor
-    // and cannot be changed afterwards
+    // and cannot be changed afterwards.
     AggregatorV3Interface internal immutable i_priceFeed;
 
     // This variable stores the MyERC20 token contract
-    // so this TokenShop can interact with it
+    // so TokenShop can interact with it.
     MyERC20 public immutable i_token;
 
-    // Our ERC20 token uses 18 decimals
-    // so 1 full token is represented as 1 * 10^18
+    // Our ERC20 token uses 18 decimals.
+    // 1 full token is represented as 1 * 10^18.
     uint256 public constant TOKEN_DECIMALS = 18;
 
-    // We are deciding that 1 CLF token costs $2
+    // We decide that 1 CLF token costs $2.
     //
-    // Because Solidity does not use floating point numbers,
-    // we store $2 using 18 decimals:
+    // Solidity does not use normal floating-point numbers,
+    // so we represent $2 using 18 decimals:
     //
     // 2 * 10^18
     uint256 public constant TOKEN_USD_PRICE =
         2 * 10 ** TOKEN_DECIMALS;
 
     // Event emitted when the owner withdraws ETH
-    // from the TokenShop contract
+    // from the TokenShop contract.
     event BalanceWithdrawn();
 
-    // Custom error used when someone sends 0 ETH
+    // Custom error used when someone sends 0 ETH.
     error TokenShop__ZeroETHSent();
 
-    // Custom error used if withdrawing ETH fails
+    // Custom error used if withdrawing ETH fails.
     error TokenShop__CouldNotWithdraw();
 
-    // The constructor runs once when TokenShop is deployed
+    // The constructor runs once when TokenShop is deployed.
     //
-    // tokenAddress = address of our deployed MyERC20 contract
+    // tokenAddress = address of our deployed MyERC20 contract.
     //
-    // Ownable(msg.sender) makes the deployer of TokenShop
-    // the owner of TokenShop
+    // Ownable(msg.sender) makes whoever deploys TokenShop
+    // the owner of TokenShop.
     constructor(address tokenAddress) Ownable(msg.sender) {
-
-        // Convert the tokenAddress into a MyERC20 contract reference
+        // Convert the tokenAddress into a MyERC20 contract reference.
         //
-        // This is how TokenShop becomes connected to our ERC20 contract
-        // and can later call:
+        // This connects TokenShop to our ERC20 contract
+        // so we can later call:
         //
         // i_token.mint(...)
         i_token = MyERC20(tokenAddress);
@@ -67,8 +65,8 @@ contract TokenShop is Ownable {
          * Network: Sepolia
          * Price Feed: ETH / USD
          *
-         * This is the address of Chainlink's ETH/USD
-         * price feed contract on Sepolia
+         * This is the Chainlink ETH/USD
+         * price feed address on Sepolia.
          */
         i_priceFeed = AggregatorV3Interface(
             0x694AA1769357215DE4FAC081bf1f309aDC325306
@@ -101,7 +99,7 @@ contract TokenShop is Ownable {
             /* uint80 answeredInRound */
         ) = i_priceFeed.latestRoundData();
 
-        // Return the latest ETH/USD price
+        // Return the latest ETH/USD price.
         //
         // The ETH/USD Chainlink feed uses 8 decimals.
         //
@@ -133,19 +131,18 @@ contract TokenShop is Ownable {
         //
         // 8 decimals -> 18 decimals
         uint256 ethUsd =
-            uint256(getChainlinkDataFeedLatestAnswer())
-            * 10 ** 10;
+            uint256(getChainlinkDataFeedLatestAnswer()) * 10 ** 10;
 
         // Convert the ETH sent into its USD value.
         //
-        // amountInETH is already in wei,
+        // amountInETH is in wei,
         // which uses 18 decimals.
         //
-        // Example idea:
+        // Conceptually:
         //
         // ETH sent × ETH/USD price = USD value
         //
-        // We divide by 10^18 so the decimals stay correct.
+        // We divide by 10^18 so the decimals remain correct.
         uint256 ethAmountInUSD =
             amountInETH * ethUsd / 10 ** 18;
 
@@ -153,12 +150,12 @@ contract TokenShop is Ownable {
         //
         // Each CLF token costs $2.
         //
-        // So conceptually:
+        // Conceptually:
         //
         // token amount = USD value / token price
         //
-        // We multiply by 10^18 so the result
-        // is represented using ERC20's 18 decimals.
+        // We multiply by 10^18 so the returned token amount
+        // uses ERC20's 18 decimal format.
         return
             (ethAmountInUSD * 10 ** TOKEN_DECIMALS)
             / TOKEN_USD_PRICE;
@@ -169,8 +166,7 @@ contract TokenShop is Ownable {
      * when someone sends ETH directly to TokenShop.
      */
     receive() external payable {
-
-        // msg.value = amount of ETH sent with this transaction
+        // msg.value = amount of ETH sent with the transaction.
         //
         // If the user sends 0 ETH, cancel the transaction.
         if (msg.value == 0) {
@@ -178,13 +174,13 @@ contract TokenShop is Ownable {
         }
 
         // Calculate how many CLF tokens the user should receive,
-        // then tell the MyERC20 contract to mint those tokens.
+        // then tell MyERC20 to mint those tokens.
         //
-        // msg.sender = the person who sent the ETH
+        // msg.sender = the person who sent the ETH.
         //
         // IMPORTANT:
         // TokenShop must have MINTER_ROLE in MyERC20,
-        // otherwise this mint call will fail.
+        // otherwise this call will revert.
         i_token.mint(
             msg.sender,
             amountToMint(msg.value)
@@ -196,15 +192,14 @@ contract TokenShop is Ownable {
      * all ETH collected from token purchases.
      */
     function withdraw() external onlyOwner {
-
-        // address(this) = this TokenShop contract
+        // address(this) = this TokenShop contract.
         //
         // address(this).balance = all ETH currently held
-        // inside TokenShop
+        // inside TokenShop.
         //
-        // owner() = owner address provided by Ownable
+        // owner() = owner address provided by Ownable.
         //
-        // .call sends all the ETH to the owner
+        // .call sends all the ETH to the owner.
         (bool success, ) =
             payable(owner()).call{
                 value: address(this).balance
@@ -216,7 +211,7 @@ contract TokenShop is Ownable {
             revert TokenShop__CouldNotWithdraw();
         }
 
-        // Record that the withdrawal happened
+        // Record that the withdrawal happened.
         emit BalanceWithdrawn();
     }
 }
